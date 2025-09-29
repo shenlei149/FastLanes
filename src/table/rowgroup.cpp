@@ -168,6 +168,9 @@ struct get_statistics_visitor {
 	void operator()(up<Struct>& str_col) const {
 	}
 
+	void operator()(up<List>& list_col) const {
+	}
+
 	void operator()(auto& col) const {
 		FLS_UNREACHABLE();
 	}
@@ -229,6 +232,10 @@ struct finalize_visitor {
 		for (auto& col : struct_col->internal_rowgroup) {
 			visit(finalize_visitor {}, col);
 		}
+	}
+
+	void operator()(up<List>& list_col) const {
+		visit(finalize_visitor {}, list_col->child);
 	}
 
 	void operator()(auto& col) const {
@@ -393,6 +400,7 @@ void cast(rowgroup_pt& rowgroup, ColumnDescriptorT& column_descriptor) {
 			          // TODO
 		          },
 		          [&](up<Struct>& struct_col) {},
+		          [&](up<List>& list_col) {},
 		          [&](auto& arg) { FLS_UNREACHABLE_WITH_TYPE(arg) },
 		      },
 		      rowgroup[column_descriptor.idx]);

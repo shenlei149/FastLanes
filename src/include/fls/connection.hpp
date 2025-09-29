@@ -124,7 +124,7 @@ private:
 	void prepare_table() const;
 	void write_footer(const path& dir_path) const;
 
-private:
+public:
 	up<Config>           m_config;
 	up<Table>            m_table;
 	up<TableDescriptorT> m_table_descriptor;

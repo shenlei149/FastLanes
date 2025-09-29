@@ -56,6 +56,10 @@ struct point_to_visitor {
 			child_opr->PointTo(vec_idx);
 		}
 	}
+	void operator()(const sp<enc_list_opr>& opr) {
+		// internal PointTo exec in executor visitor
+		// opr->internal_expr->PointTo(vec_idx);
+	}
 
 	template <typename KEY_PT, typename INDEX_PT>
 	void operator()(const sp<enc_dict_map_opr<KEY_PT, INDEX_PT>>& opr) {
@@ -320,6 +324,13 @@ struct flush_segments_visitor {
 			opr->internal_exprs[expr_idx]->Flush(buf, *column_descriptor.children[expr_idx], helper_buffer);
 		}
 	}
+	void operator()(const sp<enc_list_opr>& opr) {
+		segments.push_back(std::move(opr->offsets_segment));
+		segments.push_back(std::move(opr->length_segment));
+
+		opr->internal_expr->Finalize();
+		opr->internal_expr->Flush(buf, *column_descriptor.children[0], helper_buffer);
+	}
 
 	void operator()(const sp<enc_fsst_opr>& opr) {
 		opr->MoveSegments(segments);
@@ -484,6 +495,11 @@ struct extract_segments_visitor {
 			}
 		}
 	}
+	void operator()(const sp<enc_list_opr>& opr) {
+		for (const auto& child_operator : opr->internal_expr->operators) {
+			visit(extract_segments_visitor {segments}, child_operator);
+		}
+	}
 
 	// DICT
 	void operator()(const sp<enc_fsst_dict_opr>& opr) {
@@ -624,6 +640,8 @@ struct finalize_operators_visitor {
 	}
 
 	void operator()(const sp<enc_struct_opr>& opr) {
+	}
+	void operator()(const sp<enc_list_opr>& opr) {
 	}
 
 	// DICT FSST

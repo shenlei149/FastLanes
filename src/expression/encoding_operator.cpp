@@ -202,20 +202,47 @@ void enc_fls_str_uncompressed_op::Copy() const {
 \*--------------------------------------------------------------------------------------------------------------------*/
 enc_struct_opr::enc_struct_opr(const col_pt& column, ColumnDescriptorT& column_descriptor) {
 
-	auto visitor = overloaded {[&](std::monostate&) { FLS_UNREACHABLE(); },
-	                           [&](const up<Struct>& struct_col) {
-		                           for (auto& child_column_descriptor : column_descriptor.children) {
-			                           InterpreterState state;
+	auto visitor = overloaded {
+	    [&](std::monostate&) { FLS_UNREACHABLE(); },
+	    [&](const up<Struct>& struct_col) {
+		    for (auto& child_column_descriptor : column_descriptor.children) {
+			    InterpreterState state;
 
-			                           auto child_physical_expr = Interpreter::Encoding::Interpret(
-			                               *child_column_descriptor, struct_col->internal_rowgroup, state);
-			                           internal_exprs.emplace_back(child_physical_expr);
-		                           }
-	                           },
-	                           //
-	                           [&](const auto&) {
-		                           FLS_UNREACHABLE()
-	                           }};
+			    auto child_physical_expr = Interpreter::Encoding::Interpret(
+			        *child_column_descriptor, struct_col->internal_rowgroup[child_column_descriptor->idx], state);
+			    internal_exprs.emplace_back(child_physical_expr);
+		    }
+	    },
+	    //
+	    [&](const auto&) {
+		    FLS_UNREACHABLE()
+	    }};
+
+	visit(visitor, column);
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*\
+ * enc list opr
+\*--------------------------------------------------------------------------------------------------------------------*/
+enc_list_opr::enc_list_opr(const col_pt& column, ColumnDescriptorT& column_descriptor) {
+	offsets_segment = make_unique<Segment>();
+	length_segment  = make_unique<Segment>();
+
+	auto visitor =
+	    overloaded {[&](std::monostate&) { FLS_UNREACHABLE(); },
+	                [&](const up<List>& list_col) {
+		                InterpreterState state;
+		                internal_expr =
+		                    Interpreter::Encoding::Interpret(*column_descriptor.children[0], list_col->child, state);
+		                list = std::get<up<List>>(column).get();
+
+		                offsets_segment->Flush(list->ofs_arr.data(), list->ofs_arr.size() * sizeof(ofs_t));
+		                length_segment->Flush(list->length_arr.data(), list->length_arr.size() * sizeof(len_t));
+	                },
+	                //
+	                [&](const auto&) {
+		                FLS_UNREACHABLE()
+	                }};
 
 	visit(visitor, column);
 }

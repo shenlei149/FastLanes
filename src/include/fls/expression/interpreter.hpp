@@ -33,7 +33,7 @@ public:
 	class Encoding {
 	public:
 		static sp<PhysicalExpr>
-		Interpret(ColumnDescriptorT& column_descriptor, const rowgroup_pt& physical_rowgroup, InterpreterState& state);
+		Interpret(ColumnDescriptorT& column_descriptor, const col_pt& column, InterpreterState& state);
 	};
 	class Decoding {
 	public:

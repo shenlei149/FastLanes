@@ -64,6 +64,21 @@ struct operator_visitor {
 			ExprExecutor::execute(*expr_operator, vec_idx);
 		}
 	}
+	void operator()(sp<enc_list_opr>& op) {
+		if (vec_idx != 0) {
+			return;
+		}
+
+		// TODO should not do all for child array
+		// for vec_idx == 0, 
+		List* list   = op->list;
+		auto  total  = list->ofs_arr.back() + list->length_arr.back();
+		auto  n_vecs = total % CFG::VEC_SZ == 0 ? total / CFG::VEC_SZ : total / CFG::VEC_SZ + 1;
+		for (size_t i = 0; i < n_vecs; i++) {
+			op->internal_expr->PointTo(i);
+			ExprExecutor::execute(*op->internal_expr, i);
+		}
+	}
 	void operator()(sp<enc_fls_str_uncompressed_op>& opr) {
 		opr->Copy();
 	}
@@ -295,6 +310,11 @@ struct operator_counter_visitor {
 		for (auto& expr_operator : op->internal_exprs) {
 			ExprExecutor::CountOperator(*expr_operator);
 		}
+
+		physical_expr.n_active_operators = 1;
+	}
+	void operator()(sp<enc_list_opr>& op) {
+		ExprExecutor::CountOperator(*op->internal_expr);
 
 		physical_expr.n_active_operators = 1;
 	}

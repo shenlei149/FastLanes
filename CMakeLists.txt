@@ -36,6 +36,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #-----------------------------------------------------------------------------------------------------------------------
 include(FetchContent)
@@ -112,7 +113,7 @@ endif ()
 # Options : ------------------------------------------------------------------------------------------------------------
 option(FLS_BUILD_TESTING "Build Test" OFF)
 option(FLS_BUILD_BENCHMARKING "Enable Benchmark Build" OFF)
-option(FLS_BUILD_EXAMPLES "Build Examples" OFF)
+option(FLS_BUILD_EXAMPLES "Build Examples" ON)
 option(FLS_BUILD_CUDA "Build FastLanes CUDA reader" OFF)
 option(FLS_BUILD_GTEST "Build GTEST" OFF)
 option(FLS_BUILD_PYTHON "Build FastLanes Python bindings" OFF)

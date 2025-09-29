@@ -29,6 +29,7 @@ template <typename KEY_PT, typename INDEX_PT>
 struct dec_dict_opr;
 // ENCODE
 struct enc_struct_opr;
+struct enc_list_opr;
 struct enc_constant_opr;
 template <typename PT>
 struct enc_ffor_opr;
@@ -189,6 +190,7 @@ using physical_operator = variant<std::monostate,
                                   sp<struct enc_fls_str_uncompressed_op>,
                                   sp<class PhysicalExpr>, //
                                   sp<struct enc_struct_opr>,
+                                  sp<struct enc_list_opr>,
                                   // SCAN
                                   sp<struct dec_scan_opr<u32_pt>>,
                                   // FFOR

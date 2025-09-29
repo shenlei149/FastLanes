@@ -176,10 +176,11 @@ enum class OperatorToken : uint16_t {
 	EXP_DELTA_U08                        = 153,
 	EXP_RLE_U08_U16                      = 154,
 	EXP_GALP_FLT                         = 155,
-	EXP_GALP_DBL                         = 156
+	EXP_GALP_DBL                         = 156,
+	EXP_LIST                             = 157
 };
 
-inline const OperatorToken (&EnumValuesOperatorToken())[157] {
+inline const OperatorToken (&EnumValuesOperatorToken())[158] {
 	static const OperatorToken values[] = {OperatorToken::INVALID,
 	                                       OperatorToken::EXP_EQUAL,
 	                                       OperatorToken::EXP_CONSTANT_I64,
@@ -336,12 +337,13 @@ inline const OperatorToken (&EnumValuesOperatorToken())[157] {
 	                                       OperatorToken::EXP_DELTA_U08,
 	                                       OperatorToken::EXP_RLE_U08_U16,
 	                                       OperatorToken::EXP_GALP_FLT,
-	                                       OperatorToken::EXP_GALP_DBL};
+	                                       OperatorToken::EXP_GALP_DBL,
+	                                       OperatorToken::EXP_LIST};
 	return values;
 }
 
 inline const char* const* EnumNamesOperatorToken() {
-	static const char* const names[158] = {"INVALID",
+	static const char* const names[159] = {"INVALID",
 	                                       "EXP_EQUAL",
 	                                       "EXP_CONSTANT_I64",
 	                                       "EXP_CONSTANT_I32",
@@ -498,6 +500,7 @@ inline const char* const* EnumNamesOperatorToken() {
 	                                       "EXP_RLE_U08_U16",
 	                                       "EXP_GALP_FLT",
 	                                       "EXP_GALP_DBL",
+										   "EXP_LIST",
 	                                       nullptr};
 	return names;
 }

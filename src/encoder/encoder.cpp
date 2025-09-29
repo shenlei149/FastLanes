@@ -36,12 +36,13 @@ void Encoder::encode(const Connection& connection, const path& file_path) {
 
 		// write each column
 		for (auto& column_descriptor : rowgroup_descriptor->m_column_descriptors) {
-			uint8_t helper_buffer[sizeof(entry_point_t) * (CFG::N_VEC_PER_RG)]; // todo [fix me]
+			// TODO how to allocator enough room for child of list?
+			uint8_t helper_buffer[sizeof(entry_point_t) * (CFG::N_VEC_PER_RG) * 4]; // todo [fix me]
 
 			// interpret
 			InterpreterState state;
-			auto             physical_expr_up =
-			    Interpreter::Encoding::Interpret(*column_descriptor, rowgroup.internal_rowgroup, state);
+			auto             physical_expr_up = Interpreter::Encoding::Interpret(
+                *column_descriptor, rowgroup.internal_rowgroup[column_descriptor->idx], state);
 
 			// execute the expression for each vector
 			for (n_t vec_idx {0}; vec_idx < rowgroup_descriptor->m_n_vec; ++vec_idx) {

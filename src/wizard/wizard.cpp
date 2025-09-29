@@ -67,6 +67,12 @@ struct gather_statistics_visitor {
 		}
 	}
 
+	void operator()(const up<List>& fls_list) const {
+
+		auto& nested_column_descriptor = column_descriptor.children[0];
+		visit(gather_statistics_visitor {*nested_column_descriptor}, fls_list->child);
+	}
+
 	void operator()(const auto&) const {
 		FLS_UNREACHABLE();
 	}
@@ -86,6 +92,8 @@ void init(vector<up<ColumnDescriptorT>>& column_descriptors) {
 		auto& column_descriptor         = column_descriptors[col_idx];
 		column_descriptor->max          = make_unique<BinaryValueT>();
 		column_descriptor->encoding_rpn = make_unique<RPNT>();
+
+		init(column_descriptor->children);
 	}
 }
 
@@ -139,6 +147,8 @@ struct constant_visitor {
 		}
 	}
 	void operator()(const up<Struct>& struct_col) {
+	}
+	void operator()(const up<List>& list_col) {
 	}
 	void operator()(const up<FLSStrColumn>& fls_str_column) {
 		if (fls_str_column->m_stats.is_constant) {
@@ -199,6 +209,8 @@ struct null_visitor {
 		}
 	}
 	void operator()(const up<Struct>& struct_col) {
+	}
+	void operator()(const up<List>& list_col) {
 	}
 	void operator()(const up<FLSStrColumn>& fls_str_column) {
 	}
@@ -682,7 +694,7 @@ vector<OperatorToken>& get_pool(const DataType data_typ) {
 	}
 } // namespace fastlanes
 
-n_t TryExpr(const rowgroup_pt&       col,
+n_t TryExpr(const col_pt&            col,
             const ColumnDescriptorT& column_descriptor,
             const OperatorToken&     token,
             RowgroupDescriptorT&     footer,
@@ -772,14 +784,14 @@ bool IsDictionaryChoosingRequired(const ColumnDescriptorT& column_descriptor) {
 }
 
 template <typename PT>
-void TypedDecide(const rowgroup_pt&   rowgroup,
+void TypedDecide(const col_pt&        column,
                  ColumnDescriptorT&   column_descriptor,
                  RowgroupDescriptorT& footer,
                  const Connection&    fls) {
 
 	auto evaluate_expressions = [&](const auto& operator_token_list) {
 		for (const auto& expr : operator_token_list) {
-			n_t  size = TryExpr(rowgroup, column_descriptor, expr, footer, fls);
+			n_t  size = TryExpr(column, column_descriptor, expr, footer, fls);
 			auto res  = std::make_unique<ExpressionResultT>();
 
 			res->operator_token = expr;
@@ -802,7 +814,7 @@ void TypedDecide(const rowgroup_pt&   rowgroup,
 		column_descriptor.encoding_rpn->operand_tokens.pop_back();
 		evaluate_expressions(get_dict_pool<PT>(index_type));
 	} else {
-		const n_t index_type = static_cast<n_t>(FindBestDataTypeForColumn(rowgroup[column_descriptor.idx]));
+		const n_t index_type = static_cast<n_t>(FindBestDataTypeForColumn(column));
 		evaluate_expressions(get_dict_encoding_pool<PT>(index_type));
 		evaluate_expressions(get_pool<PT>(column_descriptor.data_type));
 	}
@@ -811,7 +823,7 @@ void TypedDecide(const rowgroup_pt&   rowgroup,
 	column_descriptor.encoding_rpn->operator_tokens.emplace_back(best_expr);
 }
 
-void expression_check_column(const rowgroup_pt&   rowgroup,
+void expression_check_column(const col_pt&        column,
                              ColumnDescriptorT&   column_descriptor,
                              RowgroupDescriptorT& footer,
                              const Connection&    fls) {
@@ -822,33 +834,36 @@ void expression_check_column(const rowgroup_pt&   rowgroup,
 
 	switch (column_descriptor.data_type) {
 	case DataType::INT64: {
-		TypedDecide<int64_t>(rowgroup, column_descriptor, footer, fls);
+		TypedDecide<int64_t>(column, column_descriptor, footer, fls);
 		break;
 	}
 	case DataType::INT32: {
-		TypedDecide<int32_t>(rowgroup, column_descriptor, footer, fls);
+		TypedDecide<int32_t>(column, column_descriptor, footer, fls);
 		break;
 	}
 	case DataType::INT16: {
-		TypedDecide<int16_t>(rowgroup, column_descriptor, footer, fls);
+		TypedDecide<int16_t>(column, column_descriptor, footer, fls);
 		break;
 	}
 	case DataType::BOOLEAN:
 	case DataType::UINT8: {
-		TypedDecide<uint8_t>(rowgroup, column_descriptor, footer, fls);
+		TypedDecide<uint8_t>(column, column_descriptor, footer, fls);
 		break;
 	}
 	case DataType::DOUBLE: {
-		TypedDecide<dbl_pt>(rowgroup, column_descriptor, footer, fls);
+		TypedDecide<dbl_pt>(column, column_descriptor, footer, fls);
 		break;
 	}
 	case DataType::STRUCT: {
 		column_descriptor.encoding_rpn->operator_tokens.emplace_back(OperatorToken::EXP_STRUCT);
-		auto& struct_col = rowgroup[column_descriptor.idx];
+		auto& struct_col = column;
 		visit(overloaded {
 		          [&](const up<Struct>& struct_cp) {
 			          for (auto& child_column_descriptor : column_descriptor.children) {
-				          expression_check_column(struct_cp->internal_rowgroup, *child_column_descriptor, footer, fls);
+				          expression_check_column(struct_cp->internal_rowgroup[child_column_descriptor->idx],
+				                                  *child_column_descriptor,
+				                                  footer,
+				                                  fls);
 			          }
 		          },
 		          [](auto&) { FLS_UNREACHABLE() },
@@ -857,16 +872,31 @@ void expression_check_column(const rowgroup_pt&   rowgroup,
 
 		break;
 	}
+	case DataType::LIST: {
+		column_descriptor.encoding_rpn->operator_tokens.emplace_back(OperatorToken::EXP_LIST);
+
+		auto& list_col = column;
+
+		auto& column_desc = column_descriptor.children[0];
+
+		visit(overloaded {
+		          [&](const up<List>& list_cp) { expression_check_column(list_cp->child, *column_desc, footer, fls); },
+		          [](auto&) { FLS_UNREACHABLE() },
+		      },
+		      list_col);
+
+		break;
+	}
 	case DataType::FLS_STR: {
-		TypedDecide<fls_string_t>(rowgroup, column_descriptor, footer, fls);
+		TypedDecide<fls_string_t>(column, column_descriptor, footer, fls);
 		break;
 	}
 	case DataType::INT8: {
-		TypedDecide<int8_t>(rowgroup, column_descriptor, footer, fls);
+		TypedDecide<int8_t>(column, column_descriptor, footer, fls);
 		break;
 	}
 	case DataType::FLOAT: {
-		TypedDecide<flt_pt>(rowgroup, column_descriptor, footer, fls);
+		TypedDecide<flt_pt>(column, column_descriptor, footer, fls);
 		break;
 	}
 	case DataType::BYTE_ARRAY: {
@@ -890,7 +920,7 @@ void expression_check(const rowgroup_pt& rowgroup, RowgroupDescriptorT& footer, 
 
 	for (n_t col_idx {0}; col_idx < rowgroup.size(); col_idx++) {
 		auto& column_descriptor = column_descriptors[col_idx];
-		expression_check_column(rowgroup, *column_descriptor, footer, fls);
+		expression_check_column(rowgroup[column_descriptor->idx], *column_descriptor, footer, fls);
 	}
 }
 
@@ -928,6 +958,7 @@ bool is_good_for_dictionary_encoding(const col_pt& col) {
 		                         return true;
 	                         },
 	                         [](const up<Struct>& struct_col) { return false; },
+	                         [](const up<List>& list_col) { return false; },
 	                         [](auto& arg) {
 		                         FLS_UNREACHABLE_WITH_TYPE(arg)
 		                         return false;
