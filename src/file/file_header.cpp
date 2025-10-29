@@ -12,8 +12,11 @@
 #include "fls/io/file.hpp"
 #include "fls/io/io.hpp"
 #include "fls/std/filesystem.hpp"
+#include <cstdint>
+#include <format>
 #include <fstream> // for std::ifstream
 #include <ios>     // for std::ios
+#include <stdexcept>
 
 namespace fastlanes {
 
@@ -26,6 +29,24 @@ void FileHeader::Write(const Connection& connection, const path& file_path) {
 	file_header.settings.inline_footer = connection.is_footer_inlined();
 
 	IO::append(file_io, reinterpret_cast<const char*>(&file_header), sizeof(file_header));
+}
+
+uint32_t FileHeader::Write(const Connection& connection, char* dst, uint32_t length) {
+	FileHeader file_header {};
+
+	file_header.magic_bytes            = Info::get_magic_bytes();
+	file_header.version                = Info::get_version_bytes();
+	file_header.settings.inline_footer = connection.is_footer_inlined();
+
+	if (length < sizeof(file_header)) {
+		throw std::runtime_error(
+		    std::format("buffer is too small...write fastlanes header. remained length {}, but header size is {}",
+		                length,
+		                sizeof(file_header)));
+	}
+
+	std::memcpy(dst, reinterpret_cast<const char*>(&file_header), sizeof(file_header));
+	return sizeof(file_header);
 }
 
 Status FileHeader::Load(FileHeader& file_header, const path& file_path) {

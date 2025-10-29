@@ -25,7 +25,9 @@
 #include "fls/wizard/wizard.hpp"       // for Wizard
 #include <algorithm>                   // for std::ranges::none_of
 #include <cstdint>                     // for uint64_t
+#include <cstring>
 #include <filesystem>
+#include <format>
 #include <memory>    // for std::make_unique, unique_ptr
 #include <stdexcept> // for std::runtime_error
 
@@ -101,6 +103,48 @@ Connection& Connection::spell() {
 	m_table_descriptor = Wizard::Spell(*this);
 
 	return *this;
+}
+
+uint32_t Connection::to_memory(char* dst, uint32_t length) {
+	uint32_t real_length = 0;
+
+	// check if data is loaded into memory
+	if (m_table == nullptr) {
+		throw std::runtime_error("data is not loaded.");
+	}
+
+	prepare_table();
+
+	//  make a rowgroup-get_descriptor if there is no rowgroup-get_descriptor .
+	if (m_table_descriptor == nullptr) {
+		spell();
+	}
+
+	auto l = FileHeader::Write(*this, dst, length);
+	real_length += l;
+	dst += l;
+	length -= l;
+
+	// encode
+	l = Encoder::encode(*this, dst, length);
+	real_length += l;
+	dst += l;
+	length -= l;
+
+	const uint32_t table_descriptor_size = uint32_t(FlatBuffers::Write(*this, *m_table_descriptor, dst, length));
+	real_length += table_descriptor_size;
+	dst += table_descriptor_size;
+	length -= table_descriptor_size;
+
+	if (length < sizeof(uint32_t)) {
+		throw std::runtime_error(
+		    std::format("buffer is too small...to_memory write table desc length. remained length {}", length));
+	}
+
+	std::memcpy(dst, &table_descriptor_size, sizeof(uint32_t));
+	real_length += sizeof(uint32_t);
+
+	return real_length;
 }
 
 Connection& Connection::to_fls(const path& file_path) {

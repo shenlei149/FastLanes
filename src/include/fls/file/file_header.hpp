@@ -34,6 +34,8 @@ public:
 	static void   Write(const Connection& connection, const path& dir_path);
 	static Status Load(FileHeader& file_footer, const path& file_path);
 
+	static uint32_t Write(const Connection& connection, char* dst, uint32_t length);
+
 public:
 	uint64_t magic_bytes;
 	uint64_t version;

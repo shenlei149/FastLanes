@@ -18,6 +18,7 @@
 #include "fls/reader/table_reader.hpp"
 #include "fls/std/filesystem.hpp" // for path
 #include "fls/std/vector.hpp"     // for vector
+#include "fls/table/attribute.hpp"
 #include "fls/table/rowgroup.hpp" // for Rowgroup
 #include "fls/table/table.hpp"    // for Reader
 
@@ -63,6 +64,8 @@ public:
 	explicit Connection(const Config& config);
 
 public:
+	uint32_t to_memory(char* dst, uint32_t length);
+
 	/// READ CSV
 	Connection& read_csv(const path& dir_path);
 	/// READ CSV
@@ -124,7 +127,7 @@ private:
 	void prepare_table() const;
 	void write_footer(const path& dir_path) const;
 
-private:
+public:
 	up<Config>           m_config;
 	up<Table>            m_table;
 	up<TableDescriptorT> m_table_descriptor;

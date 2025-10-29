@@ -9,6 +9,7 @@
 #include "alp/common.hpp"
 #include "fls/cfg/cfg.hpp"
 #include "fls/std/type_traits.hpp"
+#include "fls/stt/histogram.hpp"
 #include "fls/table/rowgroup.hpp"
 
 namespace fastlanes {
@@ -22,18 +23,22 @@ struct InterpreterState;
 /*--------------------------------------------------------------------------------------------------------------------*\
  * Histogram
 \*--------------------------------------------------------------------------------------------------------------------*/
-template <typename PT>
-class Histogram {
-public:
-	Histogram() = default; //
-public:
-	void Cal(PT* data);
-	void Reset();
 
-public:
-	std::vector<PT>       val_vec; //
-	std::vector<uint16_t> rep_vec; //
-};
+// TODO In separate program, it will be initialized in ctor, but
+// it won'x be initialized for fermion_core, sadly...
+// remove it...
+// template <typename PT>
+// class Histogram {
+// public:
+// 	Histogram() = default; //
+// public:
+// 	void Cal(PT* data);
+// 	void Reset();
+
+// public:
+// 	std::vector<PT>       val_vec; //
+// 	std::vector<uint16_t> rep_vec; //
+// };
 /*--------------------------------------------------------------------------------------------------------------------*\
  * enc_analyze_opr
 \*--------------------------------------------------------------------------------------------------------------------*/

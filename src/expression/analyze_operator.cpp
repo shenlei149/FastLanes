@@ -44,31 +44,31 @@ public:
 	T         upper;        //
 };
 
-template <typename PT>
-void Histogram<PT>::Cal(PT* data) {
-	val_vec.clear();
-	rep_vec.clear();
+// template <typename PT>
+// void Histogram<PT>::Cal(PT* data) {
+// 	val_vec.clear();
+// 	rep_vec.clear();
 
-	/* Sort. */
-	std::sort(data, data + CFG::VEC_SZ);
+// 	/* Sort. */
+// 	std::sort(data, data + CFG::VEC_SZ);
 
-	/* Push the first one. */
-	val_vec.push_back(data[0]);
-	rep_vec.push_back(1);
+// 	/* Push the first one. */
+// 	val_vec.push_back(data[0]);
+// 	rep_vec.push_back(1);
 
-	/* Make the histogram. */
-	for (n_t i = 1; i < CFG::VEC_SZ; ++i) {
-		/* Same value. Increase the rep*/
-		if (data[i] == data[i - 1]) {
-			rep_vec.back() += 1;
-		}
-		/* New seq. add it to vec. Set the rep to one. */
-		else {
-			val_vec.push_back(data[i]);
-			rep_vec.push_back(1);
-		}
-	}
-}
+// 	/* Make the histogram. */
+// 	for (n_t i = 1; i < CFG::VEC_SZ; ++i) {
+// 		/* Same value. Increase the rep*/
+// 		if (data[i] == data[i - 1]) {
+// 			rep_vec.back() += 1;
+// 		}
+// 		/* New seq. add it to vec. Set the rep to one. */
+// 		else {
+// 			val_vec.push_back(data[i]);
+// 			rep_vec.push_back(1);
+// 		}
+// 	}
+// }
 
 template <typename T>
 constexpr T pow2(uint8_t bw) {
@@ -158,11 +158,11 @@ Option<T> find_best_option(Histogram<T>& histogram, vec_idx_t first_base_idx, ve
 	return result;
 }
 
-template <typename PT>
-void Histogram<PT>::Reset() {
-	val_vec.clear();
-	rep_vec.clear();
-} //
+// template <typename PT>
+// void Histogram<PT>::Reset() {
+// 	val_vec.clear();
+// 	rep_vec.clear();
+// } //
 
 template class Histogram<u16_pt>;
 template class Histogram<u32_pt>;
@@ -177,7 +177,6 @@ enc_analyze_opr<PT, IS_PATCHED>::enc_analyze_opr(const PhysicalExpr& expr,
                                                  ColumnDescriptorT&  column_descriptor,
                                                  InterpreterState&   state)
     : null_map_view(col) {
-
 	is_rsum = false;
 	visit(overloaded {
 	          [&](const sp<enc_scan_opr<PT>>& opr) { data = opr->data; },
@@ -249,7 +248,7 @@ void enc_analyze_opr<PT, USE_PATCH>::Analyze() {
 			copy<PT>(data, copy_of_data);
 
 			histogram.Reset();
-			histogram.Cal(copy_of_data);
+			histogram.Cal(reinterpret_cast<uint8_t*>(copy_of_data), 0, CFG::VEC_SZ);
 			const n_t n_option = histogram.rep_vec.size();
 
 			/* Compute. */
@@ -285,7 +284,7 @@ void enc_analyze_opr<PT, USE_PATCH>::Analyze() {
 		copy<PT>(data, copy_of_data);
 
 		histogram.Reset();
-		histogram.Cal(copy_of_data);
+		histogram.Cal(reinterpret_cast<uint8_t*>(copy_of_data), 0, CFG::VEC_SZ);
 		const n_t n_option = histogram.rep_vec.size();
 
 		/* Compute. */

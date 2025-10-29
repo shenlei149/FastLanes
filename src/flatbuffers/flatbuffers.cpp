@@ -9,7 +9,10 @@
 #include "fls/connection.hpp"
 #include "fls/footer/table_descriptor_generated.h"
 #include "fls/std/string.hpp"
+#include <cstdint>
+#include <cstring>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <ios>
 #include <stdexcept>
@@ -48,6 +51,23 @@ n_t FlatBuffers::Write(const Connection&            conn,
 
 	// write it out (will auto-create directories as needed)
 	return WriteBuffer(footer_path, builder.GetBufferPointer(), builder.GetSize(), mode);
+}
+
+n_t FlatBuffers::Write(const Connection& connection, TableDescriptorT& table_descriptor, char* dst, uint32_t length) {
+
+	flatbuffers::FlatBufferBuilder builder(1024);
+	auto                           tbl_off = TableDescriptor::Pack(builder, &table_descriptor);
+	builder.Finish(tbl_off);
+
+	if (length < builder.GetSize()) {
+		throw std::runtime_error(
+		    std::format("buffer is too small...write table desc. remained length {}, but table desc size is {}",
+		                length,
+		                builder.GetSize()));
+	}
+
+	std::memcpy(dst, builder.GetBufferPointer(), builder.GetSize());
+	return builder.GetSize();
 }
 
 } // namespace fastlanes

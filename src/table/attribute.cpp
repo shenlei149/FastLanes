@@ -8,7 +8,6 @@
 #include "fls/common/alias.hpp"
 #include "fls/common/common.hpp"
 #include "fls/common/decimal.hpp"
-#include "fls/common/double.hpp"
 #include "fls/common/string.hpp"
 #include "fls/detail/parse_fp.hpp"
 #include "fls/expression/data_type.hpp"
@@ -126,50 +125,6 @@ PT TypedCast(const std::string& val_str, const DataType& data_type) {
 	default:
 		FLS_UNREACHABLE();
 	}
-	FLS_UNREACHABLE();
-}
-
-template <typename PT>
-PT TypedNull() {
-	static constexpr i08_pt I08_NULL   = 0;
-	static constexpr i16_pt I16_NULL   = 0;
-	static constexpr i32_pt I32_NULL   = 0;
-	static constexpr i64_pt I64_NULL   = 0;
-	static constexpr u08_pt U08_NULL   = 0;
-	static constexpr u16_pt U16_NULL   = 0;
-	static constexpr u32_pt U32_NULL   = 0;
-	static constexpr u64_pt U64_NULL   = 0;
-	static constexpr bol_pt BOOL_NULL  = false;
-	static constexpr flt_pt FLOAT_NULL = 0.0;
-	static constexpr dbl_pt DBL_NULL   = 0.0;
-	static constexpr char   STR_NULL[] = "NULL";
-
-	if constexpr (std::is_same_v<PT, i08_pt>) {
-		return I08_NULL;
-	} else if constexpr (std::is_same_v<PT, i16_pt>) {
-		return I16_NULL;
-	} else if constexpr (std::is_same_v<PT, i32_pt>) {
-		return I32_NULL;
-	} else if constexpr (std::is_same_v<PT, i64_pt>) {
-		return I64_NULL;
-	} else if constexpr (std::is_same_v<PT, u08_pt>) {
-		return U08_NULL;
-	} else if constexpr (std::is_same_v<PT, u16_pt>) {
-		return U16_NULL;
-	} else if constexpr (std::is_same_v<PT, u32_pt>) {
-		return U32_NULL;
-	} else if constexpr (std::is_same_v<PT, u64_pt>) {
-		return U64_NULL;
-	} else if constexpr (std::is_same_v<PT, str_pt>) {
-		return STR_NULL;
-	} else if constexpr (std::is_same_v<PT, bol_pt>) {
-		return BOOL_NULL;
-	} else if constexpr (std::is_same_v<PT, flt_pt>) {
-		return FLOAT_NULL;
-	} else if constexpr (std::is_same_v<PT, dbl_pt>) {
-		return DBL_NULL;
-	}
-
 	FLS_UNREACHABLE();
 }
 
